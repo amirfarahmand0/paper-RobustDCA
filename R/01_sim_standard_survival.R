@@ -475,13 +475,13 @@ run_single_replication <- function(model, NB_true, valid_data, target_t = 1, pt 
   NB_ipcw_aft <- compute_ipcw_nb(model, valid_data, target_t, pt, cens_method = "aft")
   NB_ipcw_spline_cox <- compute_ipcw_nb(model, valid_data, target_t, pt, cens_method = "spline_cox")
   
-  # Bias 
-  bias_km <- (NB_true - NB_km)
-  bias_ipcw_cox <- (NB_true - NB_ipcw_cox)
-  bias_ipcw_miscox <- (NB_true - NB_ipcw_miscox) 
-  bias_ipcw_rsf <- (NB_true - NB_ipcw_rsf)
-  bias_ipcw_aft <- (NB_true - NB_ipcw_aft) 
-  bias_ipcw_spline_cox <- (NB_true - NB_ipcw_spline_cox)
+  # Bias (Estimate - True)
+  bias_km <- (NB_km - NB_true)
+  bias_ipcw_cox <- (NB_ipcw_cox - NB_true)
+  bias_ipcw_miscox <- (NB_ipcw_miscox - NB_true) 
+  bias_ipcw_rsf <- (NB_ipcw_rsf - NB_true)
+  bias_ipcw_aft <- (NB_ipcw_aft - NB_true) 
+  bias_ipcw_spline_cox <- (NB_ipcw_spline_cox - NB_true)
   
   # Mean Squared Error
   sqerr_km <- (NB_km - NB_true)^2
@@ -590,9 +590,6 @@ for (scen_name in scenario_names) {
   }
 }
 
-# ------------------------------------------------------------------------------
-# 7. Data Aggregation & Output
-# ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # 7. Data Aggregation & Output

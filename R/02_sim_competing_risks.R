@@ -320,7 +320,7 @@ run_single_replication_cr <- function(model, NB_true, valid_data, target_t = 4, 
   
   data.frame(
     NB_aj = NB_aj, NB_ipcw_cox = NB_ipcw_cox, NB_ipcw_miscox = NB_ipcw_miscox, NB_ipcw_rsf = NB_ipcw_rsf, NB_ipcw_aft = NB_ipcw_aft, NB_ipcw_spline_cox = NB_ipcw_spline_cox,
-    bias_aj = NB_true - NB_aj, bias_ipcw_cox = NB_true - NB_ipcw_cox, bias_ipcw_miscox = NB_true - NB_ipcw_miscox, bias_ipcw_rsf = NB_true - NB_ipcw_rsf, bias_ipcw_aft = NB_true - NB_ipcw_aft, bias_ipcw_spline_cox = NB_true - NB_ipcw_spline_cox,
+    bias_aj = NB_aj - NB_true, bias_ipcw_cox = NB_ipcw_cox - NB_true, bias_ipcw_miscox = NB_ipcw_miscox - NB_true, bias_ipcw_rsf = NB_ipcw_rsf - NB_true, bias_ipcw_aft = NB_ipcw_aft - NB_true, bias_ipcw_spline_cox = NB_ipcw_spline_cox - NB_true,
     sqerr_aj = (NB_aj - NB_true)^2, sqerr_ipcw_cox = (NB_ipcw_cox - NB_true)^2, sqerr_ipcw_miscox = (NB_ipcw_miscox - NB_true)^2, sqerr_ipcw_rsf = (NB_ipcw_rsf - NB_true)^2, sqerr_ipcw_aft = (NB_ipcw_aft - NB_true)^2, sqerr_ipcw_spline_cox = (NB_ipcw_spline_cox - NB_true)^2,
     ci_aj_lower = ci_aj[1], ci_aj_upper = ci_aj[2], ci_ipcw_cox_lower = ci_ipcw_cox[1], ci_ipcw_cox_upper = ci_ipcw_cox[2], ci_ipcw_miscox_lower = ci_ipcw_miscox[1], ci_ipcw_miscox_upper = ci_ipcw_miscox[2], ci_ipcw_rsf_lower = ci_ipcw_rsf[1], ci_ipcw_rsf_upper = ci_ipcw_rsf[2], ci_ipcw_aft_lower = ci_ipcw_aft[1], ci_ipcw_aft_upper = ci_ipcw_aft[2], ci_ipcw_spline_cox_lower = ci_ipcw_spline_cox[1], ci_ipcw_spline_cox_upper = ci_ipcw_spline_cox[2]
   )
