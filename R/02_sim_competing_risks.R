@@ -341,7 +341,7 @@ for (scen_name in scenario_names_cr_new) {
     train_data <- generate_competing_risk_tuned(n = 1000, target_any_event_pct = common_params_cr$target_any_event_pct, competing_fraction = common_params_cr$competing_fraction, target_t = common_params_cr$target_t, delta_beta = common_params_cr$delta_beta, censoring_type = "noninformative", target_cens_pct = cens_rate)
     model <- fit_black_box_model_cr(train_data)
     
-    set.seed(123)
+    set.seed(456)
     large_data <- generate_data_by_scenario_cr(scenario = scen_name, n = 1000000, target_any_event_pct = common_params_cr$target_any_event_pct, competing_fraction = common_params_cr$competing_fraction, target_t = common_params_cr$target_t, delta_beta = common_params_cr$delta_beta, target_cens_pct = cens_rate)
     
     pop_event_rate <- mean(large_data$obs_time <= common_params_cr$target_t & large_data$status == 1L)
@@ -359,7 +359,7 @@ for (scen_name in scenario_names_cr_new) {
       results <- future_lapply(1:100, function(r) {
         valid_idx <- sample(seq_len(nrow(large_data)), n_test, replace = FALSE)
         run_single_replication_cr(model = model, NB_true = NB_true, valid_data = large_data[valid_idx, ], target_t = common_params_cr$target_t, pt = pt, B = 100)
-      }, future.seed = TRUE)
+      }, future.seed = 123L)
       
       results_df <- do.call(rbind, results)
       results_df$NB_true <- NB_true

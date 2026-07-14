@@ -539,7 +539,7 @@ for (scen_name in scenario_names) {
     model <- fit_black_box_model(train_data)
     
     # Generate population reference dataset
-    set.seed(123)
+    set.seed(456)
     large_data <- generate_data_by_scenario(
       scenario = scen_name, n = 1000000, target_event_pct = common_params$target_event_pct,
       target_t = common_params$target_t, delta_beta = common_params$delta_beta, target_cens_pct = cens_rate
@@ -564,7 +564,7 @@ for (scen_name in scenario_names) {
         valid_idx <- sample(seq_len(nrow(large_data)), n_test, replace = FALSE)
         valid_data <- large_data[valid_idx, ]
         run_single_replication(model = model, NB_true = NB_true, valid_data = valid_data, target_t = common_params$target_t, pt = pt, B = 100)
-      }, future.seed = TRUE)
+      }, future.seed = 123L)
       
       results_df <- do.call(rbind, results)
       results_df$NB_true <- NB_true
