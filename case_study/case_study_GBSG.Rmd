@@ -63,7 +63,7 @@ rotterdam_aligned <- rotterdam %>%
 
 ```{r}
 # Define the clinical time horizon (t) for absolute risk prediction
-t_years <- 6
+t_years <- 5
 target_t <- t_years * 365.25
 
 # Estimate baseline survival probability from the derivation cohort
@@ -131,10 +131,12 @@ nb_results <- pblapply(thresholds, function(z) {
     Stime = gbsg_final$rfstime, status = gbsg_final$status, marker = gbsg_final$abs_risk,
     predict.time = target_t, cut.values = z, method = "KM"
   )
+  
   Se_km <- roc_km$TP[2]
   Sp_km <- 1 - roc_km$FP[2]
   NB_km <- (Se_km * prev_km) - ((1 - Sp_km) * (1 - prev_km) * (z / (1 - z)))
-  
+  NB_all_km<- prev_km - ((1 - prev_km) * (z / (1 - z)))
+
   # Compute Net Benefit utilizing robust Conditional IPCW estimators
   indicator_pos <- (gbsg_final$abs_risk > z)
   num_se <- sum(weight_event * indicator_event * indicator_pos)
@@ -154,11 +156,21 @@ nb_results <- pblapply(thresholds, function(z) {
   
   data.frame(
     threshold = z, NB_km = NB_km, NB_ipcw = NB_ipcw, 
+    NB_all_km = NB_all_km,
     NB_all_ipcw = NB_all_ipcw, NB_none = 0
   )
 })
 
-dca_df <- do.call(rbind, nb_results)
+dca_df <- do.call(rbind, nb_results) |> 
+  mutate(diff_km = NB_km-NB_all_km,
+         diff_ipcw = NB_ipcw - NB_all_ipcw,
+         diff_method = NB_ipcw-NB_km) |> 
+  filter(thresholds<0.4)
+
+plot(dca_df$threshold,dca_df$diff_km,type='line')
+lines(dca_df$threshold,dca_df$diff_ipcw,col='blue')
+lines(dca_df$threshold,dca_df$diff_method,col='green')
+abline(h = 0,col='red')
 ```
 
 
@@ -234,9 +246,24 @@ boot_df <- do.call(rbind, boot_results)
 
 ```{r}
 dca_long <- tidyr::pivot_longer(
-  dca_df, cols = c("NB_km", "NB_ipcw", "NB_all_ipcw"),
+  dca_df, cols = c("NB_km", "NB_ipcw", "NB_all_km","NB_all_ipcw"),
   names_to = "Method", values_to = "Net_Benefit"
 )
+
+zoom_y_min <- 0.30
+zoom_y_max <- 0.60 
+
+ggplot(dca_long |> 
+         filter(Method %in% c("NB_km","NB_all_km")), aes(x = threshold, y = Net_Benefit, color = Method, linetype = Method)) +
+    geom_line(linewidth = 1.5) + 
+    coord_cartesian(ylim = c(zoom_y_min, zoom_y_max), xlim = c(0, 0.4)) +
+    scale_x_continuous(labels = scales::percent_format(accuracy = 1), breaks = seq(0, 0.4, 0.05))
+
+ggplot(dca_long |> 
+         filter(Method %in% c("NB_ipcw","NB_all_ipcw")), aes(x = threshold, y = Net_Benefit, color = Method, linetype = Method)) +
+    geom_line(linewidth = 1.5) + 
+    coord_cartesian(ylim = c(zoom_y_min, zoom_y_max), xlim = c(0, 0.4)) +
+    scale_x_continuous(labels = scales::percent_format(accuracy = 1), breaks = seq(0, 0.4, 0.05))
 
 # Establish visualization limits corresponding to the functional Net Benefit range
 zoom_y_min <- 0.30
