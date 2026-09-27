@@ -1,0 +1,11 @@
+"term","label","unit","HR","lower","upper","p_value","schoenfeld_p"
+"age","Age","per year",0.992,0.975,1.009,0.333,0.0356
+"meno","Postmenopausal (vs premenopausal)","",0.853,0.603,1.206,0.368,0.411
+"size","Tumour size","per mm",1.003,0.996,1.011,0.389,0.779
+"nodes","Number of positive lymph nodes","per node",1.019,0.995,1.044,0.129,0.569
+"er","Oestrogen receptor","per 100 fmol/L",1.037,0.961,1.119,0.345,0.529
+"hormon","Hormonal treatment (premenopausal women)","yes vs no",0.526,0.363,0.762,0.000681,0.922
+"meno:hormon","Hormonal treatment x postmenopausal (interaction)","",1.884,1.19,2.982,0.00688,0.136
+"hormon","Hormonal treatment, premenopausal women","yes vs no",0.526,0.363,0.762,0.000681,
+"hormon + meno:hormon","Hormonal treatment, postmenopausal women","yes vs no",0.991,0.755,1.299,0.945,
+"GLOBAL","Global proportional hazards test","",,,,,0.0795

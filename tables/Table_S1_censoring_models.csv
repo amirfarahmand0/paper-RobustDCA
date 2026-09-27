@@ -1,0 +1,4 @@
+censoring_model,non_informative,linear_informative,nonlinear_informative
+"Cox, Z1 + Z2 (linear effects)",Not applicable (a),Correct,Misspecified (functional form)
+"Cox, Z1 only",Not applicable (a),Misspecified (omitted covariate),Misspecified (omitted covariate and functional form)
+"GAM, s(Z1) + s(Z2)",Not applicable (a),Correct,Correct up to smoothing (b)
