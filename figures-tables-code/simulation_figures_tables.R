@@ -1,5 +1,8 @@
-# Simulation figures (Figures 1, 2, S1-S4) and tables (Tables S2-S5).
-# Reads simulation-results/ and prints each figure and table. Run from the repository root.
+# Simulation figures (Figures 1, 2, S1, S2) and tables (Tables S2-S5).
+# Reads simulation-results/, saves each figure to figures/ and each table to tables/.
+# Main measures are relative to the true NB (relative bias and relative RMSE, in %).
+# The tables also report the absolute measures (bias, empirical SE, RMSE).
+# Run from the repository root.
 
 suppressPackageStartupMessages({
   library(dplyr)
@@ -12,14 +15,18 @@ suppressPackageStartupMessages({
 # Works whether the script is run from the repository root or from figures-tables-code/
 root <- if (dir.exists("simulation-results")) "." else ".."
 path_results <- file.path(root, "simulation-results")
+path_figures <- file.path(root, "figures")
+path_tables  <- file.path(root, "tables")
+dir.create(path_figures, showWarnings = FALSE); dir.create(path_tables, showWarnings = FALSE)
 
 nominal       <- 0.90     # nominal level of the bootstrap confidence intervals
 z_nominal     <- qnorm(1 - (1 - nominal) / 2)
-main_rates    <- c(0.10, 0.30)          # censoring rates shown in Figures 1-2
-all_rates     <- c(0.10, 0.20, 0.30)
+all_rates     <- c(0.10, 0.20, 0.30)    # all censoring rates are shown in every figure
 
 # Figure option
 show_mean <- FALSE        # TRUE adds a marker for the mean error (the bias) to each boxplot
+# Panel A zooms to this range (%); boxplot statistics still use all replications
+rel_err_limits <- c(-150, 150)
 
 # 1. Read results and reshape to one row per replication x method ----
 res_std <- read.csv(file.path(path_results, "combined_results_standard.csv"))
@@ -62,6 +69,7 @@ to_long <- function(d, setting) {
 
 long <- bind_rows(to_long(res_std, "Standard"), to_long(res_cr, "Competing")) |>
   mutate(err = nb_hat - nb_true,
+         rel_err = 100 * (nb_hat - nb_true) / nb_true,
          # Bootstrap SE approximated from the 90% interval width (bootstrap SD not stored)
          se_boot = (ci_upper - ci_lower) / (2 * z_nominal))
 
@@ -88,6 +96,9 @@ perf <- long |>
     mcse_emp_se    = emp_se / sqrt(2 * (n_sim - 1)),
     rmse           = sqrt(mse),
     mcse_rmse      = mcse_mse / (2 * rmse),
+    rel_rmse       = 100 * rmse / abs(nb_true),
+    mcse_rel_rmse  = 100 * mcse_rmse / abs(nb_true),
+    mcse_rel_emp_se = 100 * (emp_se / sqrt(2 * (n_sim - 1))) / abs(nb_true),
     mcse_coverage  = sqrt(coverage * (1 - coverage) / n_sim),
     rel_err_mod_se = 100 * (mod_se / emp_se - 1),
     mcse_rel_err_mod_se = 100 * (mod_se / emp_se) *
@@ -166,12 +177,13 @@ make_figure <- function(setting_, mechs, rates, keys, mech_display, layout, file
   )
 
   # Panel A: estimation error
-  pA <- ggplot(r, aes(thr, err, fill = method, colour = method)) +
+  pA <- ggplot(r, aes(thr, rel_err, fill = method, colour = method)) +
     geom_boxplot(outlier.size = 0.8, outlier.alpha = 0.5, width = 0.7,
                  position = position_dodge(width = 0.8), alpha = 0.1) +
     geom_hline(yintercept = 0, linetype = "dashed", colour = "grey50") +
     fg + sc_colour + sc_fill + theme_fig +
-    labs(x = "Decision threshold", y = "Estimated NB - True NB")
+    coord_cartesian(ylim = rel_err_limits) +
+    labs(x = "Decision threshold", y = "Relative bias (%)")
   if (show_mean) {   # optional marker for the mean error (the bias) in each box
     pA <- pA + stat_summary(aes(group = method), fun = mean, geom = "point", shape = 23,
                             size = 1.1, fill = "white", stroke = 0.6,
@@ -179,15 +191,16 @@ make_figure <- function(setting_, mechs, rates, keys, mech_display, layout, file
   }
 
   # Panel B: RMSE
-  pB <- ggplot(p, aes(thr, rmse, colour = method, group = method)) +
+  pB <- ggplot(p, aes(thr, rel_rmse, colour = method, group = method)) +
     lines_points + fg + sc_colour + sc_lines +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.08))) +
-    theme_fig + labs(x = "Decision threshold", y = "RMSE")
+    theme_fig + labs(x = "Decision threshold", y = "Relative RMSE (%)")
 
   # Panel C: coverage, with the Monte Carlo interval around 90%
+  p_cov   <- filter(p, !is.na(coverage))
   n_rep   <- median(p$n_sim)
   mc_half <- 1.96 * sqrt(nominal * (1 - nominal) / n_rep)
-  pC <- ggplot(p, aes(thr, coverage, colour = method, group = method)) +
+  pC <- ggplot(p_cov, aes(thr, coverage, colour = method, group = method)) +
     annotate("rect", xmin = -Inf, xmax = Inf, ymin = nominal - mc_half,
              ymax = nominal + mc_half, fill = "grey85", alpha = 0.6) +
     geom_hline(yintercept = nominal, linetype = "dashed", colour = "grey45") +
@@ -195,6 +208,11 @@ make_figure <- function(setting_, mechs, rates, keys, mech_display, layout, file
     scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25),
                        labels = function(x) paste0(100 * x, "%")) +
     theme_fig + labs(x = "Decision threshold", y = "Empirical coverage")
+  missing_cov <- setdiff(levels(p$method), as.character(unique(p_cov$method)))
+  if (length(missing_cov) > 0) {
+    pC <- pC + labs(subtitle = "CIPCW coverage pending (requires the bootstrap rerun)") +
+      theme(plot.subtitle = element_text(size = 7, colour = "firebrick"))
+  }
 
   fig <- if (layout == "two_row") {
     pA / (pB | pC) + plot_layout(heights = c(1, 1), guides = "collect")
@@ -205,7 +223,8 @@ make_figure <- function(setting_, mechs, rates, keys, mech_display, layout, file
 
   # width and height: intended size in inches if the figure is saved
   message(file)
-  print(fig)
+  ggsave(file.path(path_figures, paste0(file, ".pdf")), fig, width = width, height = height)
+  ggsave(file.path(path_figures, paste0(file, ".png")), fig, width = width, height = height, dpi = 300)
   invisible(fig)
 }
 
@@ -217,23 +236,43 @@ display_main <- c("Non-informative" = "Non-informative", "Linear informative" = 
 display_sens <- c("Non-informative" = "Non-informative", "Linear informative" = "Linear informative",
                   "Nonlinear informative" = "Nonlinear informative")
 
-# Main text (10% and 30% censoring)
-make_figure("Standard",  main_mechs, main_rates, main_keys, display_main, "two_row",
-            "Figure_1_standard",  width = 7, height = 8)
-make_figure("Competing", main_mechs, main_rates, main_keys, display_main, "two_row",
-            "Figure_2_competing", width = 7, height = 8)
-# Supporting Information, Section S2 (all censoring rates)
+# Main text: all censoring rates (10%, 20% and 30%)
 make_figure("Standard",  main_mechs, all_rates, main_keys, display_main, "two_row",
-            "Figure_S1_standard_all_rates",  width = 7, height = 10)
+            "Figure_1_standard",  width = 7, height = 10)
 make_figure("Competing", main_mechs, all_rates, main_keys, display_main, "two_row",
-            "Figure_S2_competing_all_rates", width = 7, height = 10)
-# Supporting Information, Section S3 (sensitivity analysis)
+            "Figure_2_competing", width = 7, height = 10)
+# Supporting Information (sensitivity analysis). The former Figures S1-S2 (all rates)
+# are no longer needed because the main figures now show all censoring rates.
 make_figure("Standard",  sens_mechs, all_rates, sens_keys, display_sens, "stacked",
-            "Figure_S3_standard_sensitivity",  width = 7, height = 9.5)
+            "Figure_S1_standard_sensitivity",  width = 7, height = 9.5)
 make_figure("Competing", sens_mechs, all_rates, sens_keys, display_sens, "stacked",
-            "Figure_S4_competing_sensitivity", width = 7, height = 9.5)
+            "Figure_S2_competing_sensitivity", width = 7, height = 9.5)
 
 # 4. Tables S2-S5 ----
+# LaTeX body rows for the SI longtables: relative measures first, then absolute ones
+fmt <- function(x, m, d) ifelse(is.na(x), "--", sprintf(paste0("%.", d, "f (%.", d, "f)"), x, m))
+fmt_signed <- function(x, m, d) { x <- ifelse(!is.na(x) & round(x, d) == 0, 0, x); gsub("^-", "$-$", fmt(x, m, d)) }
+latex_rows <- function(tab) {
+  out <- character(0); last_block <- ""; last_thr <- NA
+  for (i in seq_len(nrow(tab))) {
+    t <- tab[i, ]
+    block <- sprintf("%s censoring, %d\\%% censored", t$mechanism, round(100 * t$cens_rate))
+    if (block != last_block) {
+      out <- c(out, sprintf("\\addlinespace[2pt]\\multicolumn{9}{@{}l}{\\textbf{%s}}\\\\*", block))
+      last_block <- block; last_thr <- NA
+    }
+    first <- is.na(last_thr) || t$threshold != last_thr
+    out <- c(out, paste0(
+      if (first) sprintf("%d\\%% & %.4f", round(100 * t$threshold), t$nb_true) else " & ", " & ",
+      t$method, " & ",
+      fmt_signed(t$rel_bias, t$mcse_rel_bias, 1), " & ", fmt(t$rel_rmse, t$mcse_rel_rmse, 1), " & ",
+      fmt_signed(t$bias, t$mcse_bias, 4), " & ", fmt(t$emp_se, t$mcse_emp_se, 4), " & ",
+      fmt(t$rmse, t$mcse_rmse, 4), " & ", fmt(100 * t$coverage, 100 * t$mcse_coverage, 1), "\\\\"))
+    last_thr <- t$threshold
+  }
+  out
+}
+
 print_perf_table <- function(setting_, blocks, name) {
   rows <- list()
   for (b in blocks) for (cr in all_rates) {
@@ -244,8 +283,11 @@ print_perf_table <- function(setting_, blocks, name) {
       arrange(threshold, method_key)
     rows[[length(rows) + 1]] <- d |> mutate(method_key = as.character(method_key))
   }
+  tab <- bind_rows(rows)
   message(name)
-  print(as.data.frame(bind_rows(rows)))
+  write.csv(tab, file.path(path_tables, paste0(name, ".csv")), row.names = FALSE)
+  writeLines(latex_rows(tab), file.path(path_tables, paste0(name, "_rows.tex")))
+  invisible(tab)
 }
 
 main_blocks <- list(

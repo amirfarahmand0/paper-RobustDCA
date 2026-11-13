@@ -242,7 +242,7 @@ print(round(c(KM = prev_km, CIPCW = prev_ipcw), 3))
 # Preferred strategy by threshold range (%)
 print(decision_summary)
 
-# Thresholds (%) at which the preferred strategy differs between KM and CIPCW
+# Thresholds (%) at which the best strategy differs between KM and CIPCW
 print(threshold_ranges(decision_check$Decision_Changed))
 
 print(decision_check %>%
@@ -268,7 +268,7 @@ threshold_axis <- scale_x_continuous(labels = scales::percent_format(accuracy = 
 
 # Figure 3: RFS and cumulative probability of censoring by hormonal treatment ----
 
-hormon_colours  <- c("Hormonal treatment" = "#1B9E77", "No hormonal treatment" = "#D95F02")
+hormon_colours  <- c("Hormonal treatment" = "#E6AB02", "No hormonal treatment" = "#666666")
 hormon_linetype <- c("Hormonal treatment" = "solid",   "No hormonal treatment" = "dashed")
 
 km_by_group <- function(event_var, cumulative) {
@@ -321,6 +321,10 @@ figure_censoring <-
   theme(legend.position = "bottom")
 
 print(figure_censoring)
+if (dir.exists("figures")) {
+  ggsave(file.path("figures", "Figure_3_GBSG_censoring.pdf"), figure_censoring, width = 7, height = 6.5)
+  ggsave(file.path("figures", "Figure_3_GBSG_censoring.png"), figure_censoring, width = 7, height = 6.5, dpi = 300)
+}
 
 # Figure 4: impact of accounting for informative censoring on the decision ----
 
@@ -337,40 +341,48 @@ flip_regions <- decision_check %>%
 panel_a_data <- dca_df %>%
   select(threshold, KM = diff_km, CIPCW = diff_ipcw) %>%
   pivot_longer(-threshold, names_to = "approach", values_to = "difference") %>%
-  mutate(approach = factor(approach, c("CIPCW", "KM")))
+  mutate(difference = 1000 * difference,            # per 1,000 individuals
+         approach = factor(approach, c("CIPCW", "KM")))
 
 panel_b_data <- dca_df %>%
   select(threshold, Model = diff_model, `Treat All` = diff_treat_all) %>%
-  pivot_longer(-threshold, names_to = "strategy", values_to = "difference")
+  pivot_longer(-threshold, names_to = "strategy", values_to = "difference") %>%
+  mutate(difference = 1000 * difference)            # per 1,000 individuals
 
 panel_a <- ggplot() +
   geom_rect(data = flip_regions,
-            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, fill = "Decision changed"),
+            aes(xmin = xmin, xmax = xmax, ymin = -Inf, ymax = Inf, fill = "Best strategy differs"),
             alpha = 0.25) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_line(data = panel_a_data,
             aes(threshold, difference, colour = approach, linetype = approach),
             linewidth = 0.9) +
-  scale_colour_manual(values = c(CIPCW = "#1B9E77", KM = "#7570B3"), name = NULL) +
+  scale_colour_manual(values = c(CIPCW = "#D95F02", KM = "#7570B3"), name = NULL) +  # same colours as in Figures 1-2
   scale_linetype_manual(values = c(CIPCW = "solid", KM = "dashed"), name = NULL) +
-  scale_fill_manual(values = c("Decision changed" = "grey60"), name = NULL) +
+  scale_fill_manual(values = c("Best strategy differs" = "grey60"), name = NULL) +
+  guides(colour = guide_legend(order = 1), linetype = guide_legend(order = 1), fill = guide_legend(order = 2)) +
   threshold_axis +
   labs(x = "Decision threshold",
-       y = expression(NB[Model] - NB["Treat All"])) +
-  theme_paper
+       y = expression(NB[Model] - NB["Treat All"] ~ "(per 1,000)")) +
+  theme_paper +
+  theme(legend.box = "vertical", legend.spacing.y = unit(0, "pt"))
 
 panel_b <- ggplot(panel_b_data, aes(threshold, difference, colour = strategy)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_line(linewidth = 0.9) +
-  scale_colour_manual(values = c(Model = "#1B9E77", `Treat All` = "#D95F02"), name = NULL) +
+  scale_colour_manual(values = c(Model = "#1F78B4", `Treat All` = "#A6761D"), name = NULL) +
   threshold_axis +
   labs(x = "Decision threshold",
-       y = expression(NB[CIPCW] - NB[KM])) +
+       y = expression(NB[CIPCW] - NB[KM] ~ "(per 1,000)")) +
   theme_paper
 
 figure_decision <- (panel_a | panel_b) + plot_annotation(tag_levels = "A")
 
 print(figure_decision)
+if (dir.exists("figures")) {
+  ggsave(file.path("figures", "Figure_4_GBSG_decision_impact.pdf"), figure_decision, width = 9, height = 4.6)
+  ggsave(file.path("figures", "Figure_4_GBSG_decision_impact.png"), figure_decision, width = 9, height = 4.6, dpi = 300)
+}
 
 # 8. Table S6: censoring model (Supporting Information, Section S4) ----
 
