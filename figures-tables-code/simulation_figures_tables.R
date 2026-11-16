@@ -170,11 +170,12 @@ make_figure <- function(setting_, mechs, rates, keys, mech_display, layout, file
                     scale_shape_manual(values = shapes[lv], breaks = lv))
   fg    <- facet_grid(rate ~ mechanism)
   dodge <- position_dodge(width = 0.35)
-  # Legend taken from Panel A
+  # Panels B and C get their own legend (colour, line type and point shape)
   lines_points <- list(
-    geom_line(aes(linetype = method), position = dodge, linewidth = 0.5, show.legend = FALSE),
-    geom_point(aes(shape = method), position = dodge, size = 1.7, show.legend = FALSE)
+    geom_line(aes(linetype = method), position = dodge, linewidth = 0.5),
+    geom_point(aes(shape = method), position = dodge, size = 1.7)
   )
+  legend_bottom <- theme(legend.position = "bottom", legend.title = element_blank())
 
   # Panel A: estimation error
   pA <- ggplot(r, aes(thr, rel_err, fill = method, colour = method)) +
@@ -214,12 +215,17 @@ make_figure <- function(setting_, mechs, rates, keys, mech_display, layout, file
       theme(plot.subtitle = element_text(size = 7, colour = "firebrick"))
   }
 
+  # Legend for Panel A directly below it, and a second legend (with point shapes)
+  # below Panels B and C
+  pA <- pA + legend_bottom
   fig <- if (layout == "two_row") {
-    pA / (pB | pC) + plot_layout(heights = c(1, 1), guides = "collect")
+    lower <- (pB | pC) + plot_layout(guides = "collect") & legend_bottom
+    pA / lower + plot_layout(heights = c(1, 1))
   } else {
-    pA / pB / pC + plot_layout(heights = c(1.15, 1, 1), guides = "collect")
+    pA / (pB + theme(legend.position = "none")) / (pC + legend_bottom) +
+      plot_layout(heights = c(1.15, 1, 1))
   }
-  fig <- fig + plot_annotation(tag_levels = "A") & theme(legend.position = "bottom")
+  fig <- fig + plot_annotation(tag_levels = "A")
 
   # width and height: intended size in inches if the figure is saved
   message(file)

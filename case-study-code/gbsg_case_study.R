@@ -342,12 +342,13 @@ panel_a_data <- dca_df %>%
   select(threshold, KM = diff_km, CIPCW = diff_ipcw) %>%
   pivot_longer(-threshold, names_to = "approach", values_to = "difference") %>%
   mutate(difference = 1000 * difference,            # per 1,000 individuals
-         approach = factor(approach, c("CIPCW", "KM")))
+         approach = factor(approach, c("KM", "CIPCW")))
 
 panel_b_data <- dca_df %>%
-  select(threshold, Model = diff_model, `Treat All` = diff_treat_all) %>%
+  select(threshold, `Using the model` = diff_model, `Treating all` = diff_treat_all) %>%
   pivot_longer(-threshold, names_to = "strategy", values_to = "difference") %>%
-  mutate(difference = 1000 * difference)            # per 1,000 individuals
+  mutate(difference = 1000 * difference,            # per 1,000 individuals
+         strategy = factor(strategy, c("Using the model", "Treating all")))
 
 panel_a <- ggplot() +
   geom_rect(data = flip_regions,
@@ -363,14 +364,14 @@ panel_a <- ggplot() +
   guides(colour = guide_legend(order = 1), linetype = guide_legend(order = 1), fill = guide_legend(order = 2)) +
   threshold_axis +
   labs(x = "Decision threshold",
-       y = expression(NB[Model] - NB["Treat All"] ~ "(per 1,000)")) +
+       y = expression(NB["using the model"] - NB["treating all"] ~ "(per 1,000)")) +
   theme_paper +
   theme(legend.box = "vertical", legend.spacing.y = unit(0, "pt"))
 
 panel_b <- ggplot(panel_b_data, aes(threshold, difference, colour = strategy)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   geom_line(linewidth = 0.9) +
-  scale_colour_manual(values = c(Model = "#1F78B4", `Treat All` = "#A6761D"), name = NULL) +
+  scale_colour_manual(values = c(`Using the model` = "#1F78B4", `Treating all` = "#A6761D"), name = NULL) +
   threshold_axis +
   labs(x = "Decision threshold",
        y = expression(NB[CIPCW] - NB[KM] ~ "(per 1,000)")) +
