@@ -4,6 +4,8 @@ Code to reproduce the simulation results, figures, tables, and case study result
 "Robust Decision Curve Analysis for Survival Risk Prediction Models in the Presence of Informative Censoring"
 by Amirhosein Farahmand, Mauricio Lopez-Mendez, Mohsen Sadatsafavi, Abdollah Safari, and Tae Yoon Lee.
 
+Preprint: [arXiv:2611.21953](http://arxiv.org/abs/2611.21953)
+
 ## Organization
 
 All scripts are run from the root of this repository.
